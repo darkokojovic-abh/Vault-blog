@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+  labels:
+    app: myapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+      annotations:
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/agent-inject-status: "update"
+        vault.hashicorp.com/agent-inject-secret-myapp: "database/creds/myapp"
+        vault.hashicorp.com/secret-volume-path-myapp: "/src/config"
+        vault.hashicorp.com/agent-inject-file-myapp: "conf.yaml"
+        vault.hashicorp.com/agent-inject-template-myapp: |
+          {{- with secret "database/creds/myapp" -}}
+          DB_HOST: postgres
+          DB_PORT: 5432
+          DB_USERNAME: {{ .Data.username }}
+          DB_PASSWORD: {{ .Data.password }}
+          DB_NAME: postgresdb
+          {{- end }}
+        vault.hashicorp.com/role: "myapp"
+    spec:
+      serviceAccountName: myapp
+      containers:
+      - name: myapp
+        image: dkojovicabh/myapp:blog
+        ports:
+        - name: http
+          containerPort: 8090
